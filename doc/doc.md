@@ -7,7 +7,81 @@
 1. This library provides ways to write gpu code inside regular `C++` code.
 2. The gpu code written are organized in the units of `Procedure`s: Every procedure is a task that can be run on the gpu while producing some output based on the input.
 3. `Procedure`s run asynchronously (both for the cpu preperation part and gpu execution part) to the caller thread.
+4. `Procedure`s have the following options for input information: **SSBO**, **uniform**, and the following options for output: **SSBO**.
 
+```c++
+/* Usage Concept */
+struct Constants {
+  int a;
+  float b;
+};
+struct Input {
+  array<int, 64> x;
+  array<float, 64> y, z;
+};
+using Output = array<float, 64>;
+
+Constants constants;
+Input input;
+Output output;
+void* window_handle;
+
+/* CrystalGPU magic begins. */
+/**
+ * Retrieve GPU device.
+ */
+assert(glan::DeviceList().size() > 0);
+glan::Device device = glan::DeviceList()[0];
+/**
+ * Describe GPU Procedure.
+ */
+glan::RO<glan::I32, INPUT_UNIFORM> A{constants.a};
+glan::RO<glan::F32, INPUT_UNIFORM> B{constants.b};
+glan::RO<glan::ARR<I32, 64>, INPUT_SSBO> X{input.x};
+glan::RO<glan::ARR<F32, 64>, INPUT_SSBO> Y{input.y};
+glan::RO<glan::ARR<F32, 64>, INPUT_SSBO> Z{input.z};
+glan::VAR<glan::ARR<F32, 64>, OUTPUT_SSBO> OUT{output};
+glan::TEXTURE<INTERSTAGE_SSBO> TEXTURE{64, 32};
+
+glan::PROCEDURE COMP_PROC = glan::BEGIN();
+  glan::FUNCTION<glan::F32> COMP = glan::BEGIN();
+    glan::VAR<glan::I32, PARAM> x;
+    glan::VAR<glan::F32, PARAM> y, z;
+    glan::IF(x > 32)::BEGIN();
+      glan::RETURN(y * 0.5_F32);
+    glan::END();
+    glan::ELSE::BEGIN();
+      glan::RETURN(y + z);
+    glan::END();
+  glan::END();
+
+  glan::THREAD_IDX TI;
+  OUT[TI] = COMP(X[TI], Y[TI], Z[TI]);
+  glan::VAR<glan::I32> I = 0;
+  glan::WHILE(I < 32_I32)::BEGIN();
+    TEXTURE[IT][I] = OUT[TI];
+    I++;
+  glan::END();
+glan::END();
+
+glan::SURFACE SURF{window_handle};
+glan::PROCEDURE DISP_PROC = glan::BEGIN();
+  SURF.CLEAR();
+  glan::PRIMITIVE::TRIANGLE TRI{
+    {0, 0},
+    {1, 0},
+    {0, 1},
+    SURF,
+  };
+  TRI.FILL(TEXTURE);
+glan::END();
+/**
+ * Run procedure.
+ */
+auto comp_flag = device.Run(COMP_PROC[1, 2, 4], 8, 16, 32);
+device.Connectto(window_handle);
+auto disp_flag = device.Run(DISP_PROC);
+```
 
 ## Implementation Design
 

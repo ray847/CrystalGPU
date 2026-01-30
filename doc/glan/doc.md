@@ -7,43 +7,86 @@ This file contains how the language structure is designed within the context and
 
 ```mermaid
 ---
-title: Concept Hierarchy
+title: Code Generation
 ---
 classDiagram
 
-class ANY_STATEMENT {
-  + operator string()
+class PROCEDURE {
+  FUNCTION MAIN
+  vector~FUNCTION~ FUNCTIONS
+  vector~TUPLE~ TUPLES
+}
+PROCEDURE --* FUNCTION
+
+class FUNCTION {
+  SIGNATURE
+  BLOCK
+}
+FUNCTION --* SIGNATURE
+FUNCTION --* BLOCK
+
+class SIGNATURE {
+  vector<string> PARAMS
+  string RETURN_TYPE
+  string NAME
 }
 
-class ANY_EXPR {
-  + operator string()
-  + typename TYPE
+class BLOCK {
+  BLOCK* OUTER
+  vector~variant~string, BLOCK~~
+  void PUSH(string)
+  void PUSH(OP)
+  void PUSH()
+  void POP()
 }
 
-class ANY_VAR {
-  + string NAME
+class TYPE {
+  string KEYWORD
 }
-ANY_EXPR --|> ANY_VAR
 
-class ANY_READONLY {
-  + string NAME
+class ATOMIC {
+  string USAGE
 }
-ANY_EXPR --|> ANY_READONLY
+ATOMIC --> BLOCK: Push(string)
+FUNCTION --> ATOMIC: Function Call
 
-class ANY_IMMEDIATE {
-  + TYPE::CPP_TYPE VAL
+class TUPLE {
+  TYPLE~TYPE~ ITEMS
+  ATOMIC operator[]
 }
-ANY_EXPR --|> ANY_IMMEDIATE
+ATOMIC <|-- TUPLE
+TYPE *-- TUPLE
 
-class ANY_BUILTIN {
-  + string NAME
+class VARIABLE {
+  TYPE
+  string KEYWORD
 }
-ANY_EXPR --|> ANY_BUILTIN
+ATOMIC <|-- VARIABLE
+TYPE *-- VARIABLE
 
-class ANY_TYPE {
-  + string KEYWORD
-  + typename CPP_TYPE
+class PARAMETER {
+  string KEYWORD
 }
+ATOMIC <|-- PARAMETER
+TYPE *-- PARAMETER
+
+class READONLY {
+  string KEYWORD
+}
+ATOMIC <|-- READONLY
+TYPE *-- READONLY
+
+class CONSTANT {
+  string KEYWORD
+}
+ATOMIC <|-- CONSTANT
+TYPE *-- CONSTANT
+
+class IMMEDIATE {
+  string KEYWORD
+}
+ATOMIC <|-- IMMEDIATE
+TYPE *-- IMMEDIATE
 ```
 
 ```mermaid
