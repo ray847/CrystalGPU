@@ -5,9 +5,11 @@
 
 namespace crystal::gpu::impl::glan::semantic {
 
-template<typename T>
-concept ANY_EXPR = ANY_TYPE<typename T::TYPE>;
+template <typename T>
+concept ANY_EXPRESSION = requires (){
+  typename T::TYPE;
+} && ANY_TYPE<typename T::TYPE>;
 
-} // namespace crystal::gpu::impl::glan::semantics
+} // namespace crystal::gpu::impl::glan::semantic
 
 #endif

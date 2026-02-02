@@ -1,55 +1,59 @@
 #ifndef CRYSTALGPU_IMPL_GLAN_CODE_GEN_FUNCTION_H_
 #define CRYSTALGPU_IMPL_GLAN_CODE_GEN_FUNCTION_H_
 
-#include <format>
-#include <list>
+#include <vector>
 #include <string>
+#include <format>
+#include <sstream>
 
 #include "block.h"
-#include "tag.h"
-#include "argument.h"
+#include "atomic.h"
+#include "type.h"
 
 namespace crystal::gpu::impl::glan::code_gen {
 
-using std::format;
-using std::string;
+using std::vector, std::string, std::stringstream;
 
 class SIGNATURE {
  public:
+  vector<ATOMIC> PARAMS_;
+  TYPE TYPE_;
   string NAME_;
-  string RETURN_KEYWORD_;
-
-  SIGNATURE(string RETURN_KEYWORD)
-      : NAME_(format("FUNCTION_{}", TAG_.GEN())),
-        RETURN_KEYWORD_(RETURN_KEYWORD) {}
-  operator std::string() { return NAME_; }
-
- private:
-  inline static TAG<SIGNATURE> TAG_{};
 };
 
 class FUNCTION {
  public:
-  SIGNATURE SIGNATURE_;
-  BLOCK CODE_BLOCK_{};
-  std::list<ARG> PARAMS_{};
-
-  FUNCTION(string RETURN_KEYWORD) : SIGNATURE_(RETURN_KEYWORD) {};
-  FUNCTION(const FUNCTION& other) = delete;
-  FUNCTION(FUNCTION&& other) = default;
-  FUNCTION& operator=(const FUNCTION& rhs) = delete;
-  FUNCTION& operator=(FUNCTION&& rhs) = delete;
-
-  operator string() const {
+  FUNCTION(SIGNATURE SIG) : SIG_(SIG) {
+  }
+  auto& SIGNATURE() {return SIG_;}
+  const auto& SIGNATURE() const {return SIG_;}
+  auto& BLOCK() {return BLK_;}
+  const auto& BLOCK() const {return BLK_;}
+  string DEFINITION() const {
+    stringstream PARAMS;
+    if (SIG_.PARAMS_.size()) {
+      PARAMS << format(
+          "{}: {}", SIG_.PARAMS_[0].USAGE_, SIG_.PARAMS_[0].TYPE_.KEYWORD());
+      for (size_t i = 0; i < SIG_.PARAMS_.size(); ++i) {
+        PARAMS << format(", {}: {}",
+                         SIG_.PARAMS_[0].USAGE_,
+                         SIG_.PARAMS_[0].TYPE_.KEYWORD());
+      }
+    }
     string RES;
-    string PARAM_STR;
-    for (auto& VAR : PARAMS_)
-      PARAM_STR += format("{}: {}, ", VAR.NAME(), VAR.KEYWORD());
-    RES += format("fn {}({}) -> {} ", SIGNATURE_.NAME_, PARAM_STR,
-                  SIGNATURE_.RETURN_KEYWORD_);
-    RES += CODE_BLOCK_;
+    if (SIG_.TYPE_.KEYWORD() == "void") [[unlikely]]
+      RES += format("fn {}({}) ", SIG_.NAME_, PARAMS.str());
+    else
+      RES += format(
+          "fn {}({}) -> {} ", SIG_.NAME_, PARAMS.str(), SIG_.TYPE_.KEYWORD());
+    RES += BLK_;
+    RES += '\n';
     return RES;
   }
+
+ private:
+  class SIGNATURE SIG_;
+  class BLOCK BLK_;
 };
 } // namespace crystal::gpu::impl::glan::code_gen
 

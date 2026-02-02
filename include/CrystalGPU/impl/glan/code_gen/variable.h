@@ -1,41 +1,27 @@
 #ifndef CRYSTALGPU_IMPL_GLAN_CODE_GEN_VARIABLE_H_
 #define CRYSTALGPU_IMPL_GLAN_CODE_GEN_VARIABLE_H_
 
-#include <format>
 #include <string>
-#include <algorithm>
+#include <format>
 
-#include "expression.h"
+#include "atomic.h"
+#include "type.h"
 #include "tag.h"
 
 namespace crystal::gpu::impl::glan::code_gen {
 
-using std::format;
-using std::string;
+using std::string, std::format;
 
-class VAR : public EXPR {
+/**
+ * Variable atomic with automated name generation.
+ */
+class VARIABLE : public ATOMIC {
  public:
-  VAR(string KEYWORD) :
-      NAME_([&] {
-        string NAME = format("VAR_{}_{}", TAG_.GEN(), KEYWORD);
-        std::replace(NAME.begin(), NAME.end(), '<', '_');
-        std::replace(NAME.begin(), NAME.end(), '>', '_');
-        return NAME;
-      }()),
-      KEYWORD_(KEYWORD) {
+  VARIABLE(TYPE T) : ATOMIC(format("VARIABLE_{}", TAG_.GEN()), T) {
   }
-  VAR(string KEYWORD, string NAME)
-      : NAME_(NAME), KEYWORD_(KEYWORD) {}
-  virtual ~VAR() = default;
-  const string& NAME() const { return NAME_; }
-  const string& KEYWORD() const { return KEYWORD_; }
-  operator std::string() const override { return NAME_; };
 
  private:
-  inline static TAG<VAR> TAG_{};
-
-  string NAME_;
-  string KEYWORD_;
+  inline static TAG TAG_{};
 };
 
 } // namespace crystal::gpu::impl::glan::code_gen

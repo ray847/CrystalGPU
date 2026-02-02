@@ -1,5 +1,5 @@
-#ifndef CRYSTALGPU_IMPL_GLAN_CODE_GEN_READONLY_H_
-#define CRYSTALGPU_IMPL_GLAN_CODE_GEN_READONLY_H_
+#ifndef CRYSTALGPU_IMPL_GLAN_CODE_GEN_CONSTANT_H_
+#define CRYSTALGPU_IMPL_GLAN_CODE_GEN_CONSTANT_H_
 
 #include <format>
 
@@ -11,9 +11,9 @@ namespace crystal::gpu::impl::glan::code_gen {
 
 using std::format;
 
-class READONLY : public ATOMIC {
+class CONSTANT : public ATOMIC {
   public:
-  READONLY(TYPE T) : ATOMIC(format("READONLY_{}", TAG_.GEN()), T) {
+  CONSTANT(TYPE T) : ATOMIC(format("CONSTANT_{}", TAG_.GEN()), T) {
   }
 
  private:

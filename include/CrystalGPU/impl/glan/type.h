@@ -1,80 +1,105 @@
 #ifndef CRYSTALGPU_IMPL_GLAN_TYPE_H_
 #define CRYSTALGPU_IMPL_GLAN_TYPE_H_
 
-#include <cstdint>
+#include <CrystalBase/concepts.h>
 
 #include <array>
-
-#include <concepts>
+#include <cstdint>
+#include <format>
+#include <initializer_list>
 #include <stdfloat>
 #include <string>
+#include <type_traits>
+#include <tuple>
+#include <vector>
 
+#include "code_gen/type.h"
+#include "code_gen/tuple.h"
+#include "semantic/type.h"
 
 namespace crystal::gpu::impl::glan {
 
-template <typename T>
-concept ANY_TYPE = requires {
-  typename T::CPP_TYPE;
-  { T::KEYWORD } -> std::same_as<const std::string&>;
+using std::format, std::array, std::string, std::tuple, std::vector;
+
+/* Type Concept */
+template <typename TYPE>
+concept ANY_TYPE = requires() {
+  { TYPE::CODE_GEN_TYPE } -> std::same_as<const code_gen::TYPE&>;
+} && semantic::ANY_TYPE<TYPE>;
+
+/* Primitives */
+class INT32 {
+ public:
+  using CPP_TYPE = int32_t;
+  inline const static code_gen::TYPE CODE_GEN_TYPE{ "i32" };
 };
+static_assert(ANY_TYPE<INT32>);
 
-struct TYPE {
-  /* Primitive Types */
-  struct I32 {
-    inline static const std::string KEYWORD = "i32";
-    using CPP_TYPE = int32_t;
-  };
-  static_assert(ANY_TYPE<TYPE::I32>);
-  struct U32 {
-    inline static const std::string KEYWORD = "u32";
-    using CPP_TYPE = uint32_t;
-  };
-  static_assert(ANY_TYPE<TYPE::U32>);
-  struct F32 {
-    inline static const std::string KEYWORD = "f32";
-    using CPP_TYPE = float;
-  };
-  static_assert(ANY_TYPE<TYPE::F32>);
-  struct BOOL {
-    inline static const std::string KEYWORD = "bool";
-    using CPP_TYPE = bool;
-  };
-  static_assert(ANY_TYPE<TYPE::BOOL>);
-  struct F16 {
-    inline static const std::string KEYWORD = "f16";
-#ifdef __STDCPP_FLOAT16_T__
-    using CPP_TYPE = std::float16_t;
-#else
-    using CPP_TYPE = float;
-#endif
-  };
-  static_assert(ANY_TYPE<TYPE::BOOL>);
-  struct VOID {
-    inline static const std::string KEYWORD = "void";
-    using CPP_TYPE= void;
-  };
-  static_assert(ANY_TYPE<VOID>);
-
-  /* Vectors */
-  template <size_t N, ANY_TYPE PRIMITIVE>
-  requires(N == 2) || (N == 3) || (N == 4)
-  struct VEC {
-    inline static const std::string KEYWORD =
-        format("vec{}<{}>", N, PRIMITIVE::KEYWORD);
-    using CPP_TYPE = std::array<typename PRIMITIVE::CPP_TYPE, N>;
-  };
-  static_assert(ANY_TYPE<VEC<2, I32>>);
-
-  /* Matricies */
-  template <size_t M, size_t N, ANY_TYPE PRIMITIVE>
-  requires(M == 2) || (M == 3) || (M == 4)
-  struct MAT {
-    inline static const std::string KEYWORD =
-      format("mat{}x{}<{}>", M, N, PRIMITIVE::KEYWORD);
-    using CPP_TYPE = std::array<std::array<typename PRIMITIVE::CPP_TYPE, M>, N>;
-  };
-  static_assert(ANY_TYPE<MAT<2, 3, I32>>);
+/* Vector */
+template <size_t n, ANY_TYPE T>
+class VECTOR {
+ public:
+  using CPP_TYPE = array<typename T::CPP_TYPE, n>;
+  inline const static code_gen::TYPE CODE_GEN_TYPE{ format(
+      "vec{}<{}>", n, T::CODE_GEN_TYPE.KEYWORD()) };
 };
+static_assert(ANY_TYPE<VECTOR<2, INT32>>);
+
+/* Matrix */
+template <size_t m, size_t n, ANY_TYPE T>
+class MATRIX {
+ public:
+  using CPP_TYPE = array<array<typename T::CPP_TYPE, n>, m>;
+  inline const static code_gen::TYPE CODE_GEN_TYPE{ format(
+      "mat{}x{}<{}>", m, n, T::CODE_GEN_TYPE.KEYWORD()) };
+};
+static_assert(ANY_TYPE<MATRIX<2, 3, INT32>>);
+
+/* Tuple */
+template <typename... TYPES>
+class TUPLE : public code_gen::TUPLE {
+ public:
+  using CPP_TYPE = tuple<TYPES...>;
+  inline const static code_gen::TYPE CODE_GEN_TYPE = code_gen::TUPLE{
+    std::initializer_list<code_gen::TYPE>{ (TYPES::CODE_GEN_TYPE)... }
+  };
+};
+static_assert(ANY_TYPE<TUPLE<INT32>>);
+template <typename TYPE>
+struct ANY_TUPLE : public std::false_type {};
+template <typename... TYPES>
+struct ANY_TUPLE<TUPLE<TYPES...>> : public std::true_type {};
+
+template <typename CPP_TYPE>
+string TO_STRING(CPP_TYPE VAL) {
+  if constexpr (std::is_integral_v<CPP_TYPE>
+                || std::is_floating_point_v<CPP_TYPE>) {
+    return std::to_string(VAL);
+  } else if constexpr (is_std_array<CPP_TYPE>::value
+                       && (std::is_integral_v<typename CPP_TYPE::value_type>
+                           || std::is_floating_point_v<
+                               typename CPP_TYPE::value_type
+                           >)) {
+    string STR = "{";
+    for (auto V : VAL) STR += format("{}, ", V);
+    STR += "}";
+    return STR;
+  } else if constexpr (is_std_array<CPP_TYPE>::value
+                       && is_std_array<typename CPP_TYPE::value_type>::value
+                       && (std::is_integral_v<
+                               typename CPP_TYPE::value_type::value_type
+                           >
+                           || std::is_floating_point_v<
+                               typename CPP_TYPE::value_type::value_type
+                           >)) {
+    string STR = "{";
+    for (auto& VA : VAL)
+      for (auto V : VA) STR += format("{}, ", V);
+    STR += "}";
+    return STR;
+  }
+}
+
 } // namespace crystal::gpu::impl::glan
 
 #endif

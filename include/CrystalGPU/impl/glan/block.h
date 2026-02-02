@@ -1,19 +1,31 @@
 #ifndef CRYSTALGPU_IMPL_GLAN_BLOCK_H_
 #define CRYSTALGPU_IMPL_GLAN_BLOCK_H_
 
-#include "code_gen/procedure.h"
+#include "procedure.h"
 
 namespace crystal::gpu::impl::glan {
 
-struct BEGIN_BLOCK_RETURN {};
+struct BLOCK_BEGIN_RETURN {};
 
-inline BEGIN_BLOCK_RETURN BEGIN() {
-  code_gen::BEGIN_BLOCK();
+/**
+ * Indicate the beginning of something (e.g. Procedure, Function, Code Block,
+ * etc.).
+ *
+ * This function does nothing other that returning a beginning object. The
+ * return is meant to be assigned to a object to begin a code block, e.g.:
+ * `PROCEDURE proc = BEGIN();`
+ */
+[[nodiscard]] inline BLOCK_BEGIN_RETURN BEGIN() {
   return {};
 }
+
+/**
+ * Indicate the end of something (e.g. Procedure, Function, Code Block, etc.).
+ */
 inline void END() {
-  code_gen::END_BLOCK();
+  PROCEDURE::POP();
 }
+
 } // namespace crystal::gpu::impl::glan
 
 #endif

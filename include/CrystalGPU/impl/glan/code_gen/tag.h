@@ -5,13 +5,19 @@
 
 namespace crystal::gpu::impl::glan::code_gen {
 
-template<typename T>
+/**
+ * Tag generator that generates tags in the form of 64 bit unsigned integters.
+ *
+ * The tags generated increments each time starting from 0. E.g., 0, 1, 2, ...
+ */
 class TAG {
  public:
-  uint64_t GEN() { return NXT_++; }
+  uint64_t GEN() {
+    return NXT_++;
+  }
 
  private:
-  inline static uint64_t NXT_ = 0;
+  uint64_t NXT_ = 0;
 };
 
 } // namespace crystal::gpu::impl::glan::code_gen

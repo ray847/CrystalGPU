@@ -1,49 +1,95 @@
 #ifndef CRYSTALGPU_IMPL_GLAN_CODE_GEN_BLOCK_H_
 #define CRYSTALGPU_IMPL_GLAN_CODE_GEN_BLOCK_H_
 
-#include <memory>
 #include <string>
-#include <list>
-
-#include "statement.h"
+#include <format>
+#include <vector>
+#include <variant>
+#include <stdexcept>
+#include <regex>
 
 namespace crystal::gpu::impl::glan::code_gen {
 
-using std::string;
+using std::string, std::format, std::vector, std::variant, std::get;
 
-class BLOCK : public STATEMENT {
+class BLOCK {
  public:
-  BLOCK() = default;
-  BLOCK(const BLOCK& other) = delete;
-  BLOCK(BLOCK&& other) = default;
-  BLOCK& operator=(const BLOCK& rhs) = delete;
-  BLOCK& operator=(BLOCK&& rhs) = delete;
-  ~BLOCK() = default;
-
-  operator string() const override {
-    if (!STATEMENTS_.size()) return {};
-    string RES;
-    RES += "{\n";
-    for (auto& ST : STATEMENTS_) {
-      RES += *ST;
+  /* Constants */
+  inline static const string kBEGIN_STR = "{ // BEGIN";
+  inline static const string kEND_STR = "} // END";
+  void PUSH(const string& STR) {
+    STACK_.push_back(STR);
+  }
+  void PUSH(string&& STR) {
+    STACK_.push_back(STR);
+  }
+  /**
+   * Push a operator for the last element.
+   */
+  void PUSH(string(*OP)(const string&)) {
+    string OPERAND = std::move(STACK_.back());
+    STACK_.pop_back();
+    STACK_.push_back(OP(OPERAND));
+  }
+  /**
+   * Push a operator for the last element.
+   */
+  void PUSH(string(*OP)(const string&, const string&)) {
+    string OPERAND2 = std::move(STACK_.back());
+    STACK_.pop_back();
+    string OPERAND1 = std::move(STACK_.back());
+    STACK_.pop_back();
+    STACK_.push_back(OP(OPERAND1, OPERAND2));
+  }
+  /**
+   * Push a operator for the last element.
+   */
+  void PUSH(string(*OP)(const string&, const string&, const string&)) {
+    string OPERAND3 = std::move(STACK_.back());
+    STACK_.pop_back();
+    string OPERAND2 = std::move(STACK_.back());
+    STACK_.pop_back();
+    string OPERAND1 = std::move(STACK_.back());
+    STACK_.pop_back();
+    STACK_.push_back(OP(OPERAND1, OPERAND2, OPERAND3));
+  }
+  void PUSH() {
+    PUSH([](const string& PREV) { return PREV + kBEGIN_STR; });
+    DEPTH_++;
+  }
+  void POP() {
+    if (DEPTH_ == 0) throw std::runtime_error("Already at most outer scope.");
+    STACK_.push_back(kEND_STR);
+    DEPTH_--;
+  }
+  int DEPTH() {
+    return DEPTH_;
+  }
+  operator string() const {
+    string RES = "{\n";
+    int INDENT = 1; // indenting for prettier code
+    for (auto STR : STACK_) {
+      /* Indents */
+      for (int i = 0; i < INDENT; ++i) RES += '\t';
+      /* Content */
+      if (STR.ends_with(kBEGIN_STR)) {
+        RES += STR + '\n';
+        INDENT++;
+      } else if (STR.ends_with(kEND_STR)) {
+        RES += STR + '\n';
+        INDENT--;
+      } else {
+        RES += STR + ";\n";
+      }
     }
     RES += "}\n";
     return RES;
   }
-  template<typename T>
-  T& APPEND_STATEMENT(T&& ST) {
-    STATEMENTS_.push_back(std::make_unique<T>(ST));
-    return *static_cast<T*>(STATEMENTS_.back().get());
-  }
-  BLOCK& APPEND_BLOCK() {
-    STATEMENTS_.push_back(std::make_unique<BLOCK>());
-    return *static_cast<BLOCK*>(STATEMENTS_.back().get());
-  }
 
  private:
-  std::list<std::unique_ptr<STATEMENT>> STATEMENTS_;
+  vector<string> STACK_;
+  int DEPTH_ = 0;
 };
-
 } // namespace crystal::gpu::impl::glan::code_gen
 
 #endif

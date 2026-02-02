@@ -1,6 +1,8 @@
 #ifndef CRYSTALGPU_IMPL_DEVICE_H_
 #define CRYSTALGPU_IMPL_DEVICE_H_
 
+#include <cstring>
+
 #include <iostream>
 #include <span>
 #include <array>
@@ -85,6 +87,14 @@ inline wgpu::Device CreateWGPUDevice(
   return device;
 }
 
+/**
+ * Every object of this class represents a physical GPU device.
+ *
+ * This class handles the following:
+ *  - Running procedures (GPU code).
+ *  - Caching procedures that have been run so that repeated runs are
+ * accelerated.
+ */
 class Device {
  public:
   Device() {
