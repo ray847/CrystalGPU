@@ -34,6 +34,19 @@ class PROCEDURE {
     CURR_FUNCTION_->BLOCK().PUSH();
   }
   /**
+   * Begin a function definition.
+   *
+   * @return A key to the function in the form of a `size_t`.
+   */
+  size_t BEGIN_FUNCTION(TYPE T) {
+    FUNCTIONS_.push_back({T});
+    CURR_FUNCTION_ = &FUNCTIONS_.back();
+    return FUNCTIONS_.size() - 1;
+  }
+  const FUNCTION& GET_FUNCTION(size_t IDX) const {
+    return FUNCTIONS_[IDX];
+  }
+  /**
    * Exit from current scope.
    *
    * If currently in a function and the current scope is already at the most
@@ -66,7 +79,7 @@ class PROCEDURE {
 
  private:
   FUNCTION MAIN_{ [] {
-    SIGNATURE SIG;
+    SIGNATURE SIG{};
     SIG.NAME_ = "MAIN";
     SIG.TYPE_ = {"void"};
     return SIG;

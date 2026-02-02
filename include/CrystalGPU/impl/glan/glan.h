@@ -14,4 +14,6 @@
 
 #include "operator.h"
 
+#include "function.h"
+
 #endif

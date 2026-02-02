@@ -5,7 +5,9 @@
 #include <memory>
 #include <expected>
 
+#include "CrystalGPU/impl/glan/code_gen/function.h"
 #include "code_gen/procedure.h"
+#include "type.h"
 
 namespace crystal::gpu::impl::glan {
 
@@ -63,6 +65,15 @@ class PROCEDURE {
   }
   static void DEFINE_TUPLE(size_t TAG) {
     if (INSTANCE_) INSTANCE_->DEFINE_TUPLE(TAG);
+  }
+  template <ANY_TYPE T>
+  static size_t BEGIN_FUNCTION() {
+    if (INSTANCE_) return INSTANCE_->BEGIN_FUNCTION(T::CODE_GEN_TYPE);
+    return 0;
+  }
+  static const code_gen::FUNCTION* GET_FUNCTION(size_t IDX) {
+    if (INSTANCE_) return &INSTANCE_->GET_FUNCTION(IDX);
+    return nullptr;
   }
 
  private:

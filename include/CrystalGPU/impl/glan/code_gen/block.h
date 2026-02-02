@@ -6,7 +6,6 @@
 #include <vector>
 #include <variant>
 #include <stdexcept>
-#include <regex>
 
 namespace crystal::gpu::impl::glan::code_gen {
 

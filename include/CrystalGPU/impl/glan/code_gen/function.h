@@ -9,6 +9,7 @@
 #include "block.h"
 #include "atomic.h"
 #include "type.h"
+#include "tag.h"
 
 namespace crystal::gpu::impl::glan::code_gen {
 
@@ -18,7 +19,12 @@ class SIGNATURE {
  public:
   vector<ATOMIC> PARAMS_;
   TYPE TYPE_;
-  string NAME_;
+  string NAME_ = format("FUNCTION_{}", TAG_.GEN());
+  SIGNATURE(TYPE T = {}) : TYPE_(T) {
+  }
+
+ private:
+  inline static TAG TAG_{};
 };
 
 class FUNCTION {
