@@ -43,7 +43,7 @@ glan::RO<glan::ARR<F32, 64>, INPUT_SSBO> Z{input.z};
 glan::VAR<glan::ARR<F32, 64>, OUTPUT_SSBO> OUT{output};
 glan::TEXTURE<INTERSTAGE_SSBO> TEXTURE{64, 32};
 
-glan::PROCEDURE COMP_PROC = glan::BEGIN();
+glan::COMPUTE_PROCEDURE COMP_PROC = glan::BEGIN();
   glan::FUNCTION<glan::F32> COMP = glan::BEGIN();
     glan::VAR<glan::I32, PARAM> x;
     glan::VAR<glan::F32, PARAM> y, z;
@@ -64,8 +64,8 @@ glan::PROCEDURE COMP_PROC = glan::BEGIN();
   glan::END();
 glan::END();
 
-glan::SURFACE SURF{window_handle};
-glan::PROCEDURE DISP_PROC = glan::BEGIN();
+glan::RENDER_PROCEDURE DISP_PROC = glan::BEGIN();
+  SURFACE SURF(window_handle);
   SURF.CLEAR();
   glan::PRIMITIVE::TRIANGLE TRI{
     {0, 0},
@@ -80,7 +80,9 @@ glan::END();
  */
 auto comp_flag = device.Run(COMP_PROC[1, 2, 4], 8, 16, 32);
 device.Connectto(window_handle);
+device.ClearSurface();
 auto disp_flag = device.Run(DISP_PROC);
+device.SwapSurface();
 ```
 
 ## Implementation Design
