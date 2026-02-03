@@ -22,15 +22,15 @@ int main() {
     if (code) { std::cout << *code << std::endl; }
   }
 
-  //{
-  //  PROCEDURE proc = BEGIN();
-  //  VARIABLE<TUPLE<INT32>> D;
-  //  VARIABLE<TUPLE<INT32, INT32>> A;
-  //  END();
+  {
+    PROCEDURE proc = BEGIN();
+    VARIABLE<TUPLE<INT32>> D;
+    VARIABLE<TUPLE<INT32, INT32>> A;
+    END();
 
-  //  auto code = proc.TO_CODE();
-  //  if (code) { std::cout << *code << std::endl; }
-  //}
+    auto code = proc.TO_CODE();
+    if (code) { std::cout << *code << std::endl; }
+  }
 
   return 0;
 }

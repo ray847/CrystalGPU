@@ -21,13 +21,8 @@ class PROCEDURE {
   void PUSH(string&& STR) {
     CURR_FUNCTION_->BLOCK().PUSH(STR);
   }
-  void PUSH(string(*OP)(const string&)) {
-    CURR_FUNCTION_->BLOCK().PUSH(OP);
-  }
-  void PUSH(string(*OP)(const string&, const string&)) {
-    CURR_FUNCTION_->BLOCK().PUSH(OP);
-  }
-  void PUSH(string(*OP)(const string&, const string&, const string&)) {
+  template <typename LAMBDA>
+  void PUSH(LAMBDA OP) {
     CURR_FUNCTION_->BLOCK().PUSH(OP);
   }
   void PUSH() {

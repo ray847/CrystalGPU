@@ -36,8 +36,8 @@ class CONSTANT : public code_gen::CONSTANT {
     PROCEDURE::PUSH(
         format("const {}: {}", this->USAGE_, T::CODE_GEN_TYPE.KEYWORD()));
     /* Assignment */
-    PROCEDURE::PUSH([](const string& RHS, const string& LHS) -> string {
-      return format("{} = {}", LHS, RHS);
+    PROCEDURE::PUSH([](auto STACK) {
+      STACK.PUSH(format("{1} = {0}", STACK.POP(), STACK().POP()));
     });
   }
   CONSTANT(CONSTANT&& OTHER) = delete;

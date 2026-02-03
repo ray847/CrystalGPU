@@ -4,15 +4,15 @@
 #include <format>
 
 #include "atomic.h"
-#include "type.h"
 #include "tag.h"
+#include "type.h"
 
 namespace crystal::gpu::impl::glan::code_gen {
 
 using std::format;
 
 class READONLY : public ATOMIC {
-  public:
+ public:
   READONLY(TYPE T) : ATOMIC(format("READONLY_{}", TAG_.GEN()), T) {
   }
 

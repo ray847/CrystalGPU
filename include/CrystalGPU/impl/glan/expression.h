@@ -2,6 +2,7 @@
 #define CRYSTALGPU_IMPL_GLAN_EXPRESSION_H_
 
 #include <concepts>
+
 #include "semantic/type.h"
 #include "semantic/expression.h"
 #include "type.h"

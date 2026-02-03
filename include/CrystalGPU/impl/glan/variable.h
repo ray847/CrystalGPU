@@ -36,8 +36,8 @@ class VARIABLE : public code_gen::VARIABLE {
     PROCEDURE::PUSH(
         format("var {}: {}", this->USAGE_, T::CODE_GEN_TYPE.KEYWORD()));
     /* Assign statement. */
-    PROCEDURE::PUSH([](const string& RHS, const string& LHS) -> string {
-      return format("{} = {}", LHS, RHS);
+    PROCEDURE::PUSH([](auto STACK){
+      STACK.PUSH(format("{1} = {0}", STACK.POP(), STACK.POP()));
     });
   }
   VARIABLE(VARIABLE&& OTHER) = delete;
@@ -46,8 +46,8 @@ class VARIABLE : public code_gen::VARIABLE {
   }
   const VARIABLE& operator=(EXPRESSION<T>) const {
     PROCEDURE::PUSH(this->USAGE_);
-    PROCEDURE::PUSH([](const string& RHS, const string& LHS) -> string {
-      return format("{} = {}", LHS, RHS);
+    PROCEDURE::PUSH([](auto STACK){
+      STACK.PUSH(format("{1} = {0}", STACK.POP(), STACK.POP()));
     });
     return *this;
   }

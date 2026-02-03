@@ -48,13 +48,8 @@ class PROCEDURE {
   static void PUSH(string&& STR) {
     if (INSTANCE_) INSTANCE_->PUSH(STR);
   }
-  static void PUSH(string(*OP)(const string&)) {
-    if (INSTANCE_) INSTANCE_->PUSH(OP);
-  }
-  static void PUSH(string(*OP)(const string&, const string&)) {
-    if (INSTANCE_) INSTANCE_->PUSH(OP);
-  }
-  static void PUSH(string(*OP)(const string&, const string&, const string&)) {
+  template <typename LAMBDA>
+  static void PUSH(LAMBDA OP) {
     if (INSTANCE_) INSTANCE_->PUSH(OP);
   }
   static void PUSH() {

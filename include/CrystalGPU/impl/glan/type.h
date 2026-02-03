@@ -4,6 +4,7 @@
 #include <CrystalBase/concepts.h>
 
 #include <array>
+#include <concepts>
 #include <cstdint>
 #include <format>
 #include <initializer_list>
@@ -27,16 +28,38 @@ concept ANY_TYPE = requires() {
   { TYPE::CODE_GEN_TYPE } -> std::same_as<const code_gen::TYPE&>;
 } && semantic::ANY_TYPE<TYPE>;
 
-/* Primitives */
-class INT32 {
+struct SCALAR {};
+template <typename TYPE>
+concept ANY_SCALAR = ANY_TYPE<TYPE> && std::derived_from<TYPE, SCALAR>;
+
+/* Scalar */
+class INT32 : public SCALAR {
  public:
   using CPP_TYPE = int32_t;
   inline const static code_gen::TYPE CODE_GEN_TYPE{ "i32" };
 };
 static_assert(ANY_TYPE<INT32>);
+class UINT32 : public SCALAR {
+ public:
+  using CPP_TYPE = uint32_t;
+  inline const static code_gen::TYPE CODE_GEN_TYPE{ "u32" };
+};
+static_assert(ANY_TYPE<UINT32>);
+class BOOL : public SCALAR {
+ public:
+  using CPP_TYPE = bool;
+  inline const static code_gen::TYPE CODE_GEN_TYPE{ "bool" };
+};
+static_assert(ANY_TYPE<BOOL>);
+class FLOAT32 : public SCALAR {
+ public:
+  using CPP_TYPE = float;
+  inline const static code_gen::TYPE CODE_GEN_TYPE{ "f32" };
+};
+static_assert(ANY_TYPE<FLOAT32>);
 
 /* Vector */
-template <size_t n, ANY_TYPE T>
+template <size_t n, ANY_SCALAR T>
 class VECTOR {
  public:
   using CPP_TYPE = array<typename T::CPP_TYPE, n>;
@@ -46,7 +69,7 @@ class VECTOR {
 static_assert(ANY_TYPE<VECTOR<2, INT32>>);
 
 /* Matrix */
-template <size_t m, size_t n, ANY_TYPE T>
+template <size_t m, size_t n, ANY_SCALAR T>
 class MATRIX {
  public:
   using CPP_TYPE = array<array<typename T::CPP_TYPE, n>, m>;

@@ -4,12 +4,11 @@
 #include <string>
 #include <format>
 #include <vector>
-#include <variant>
 #include <stdexcept>
 
 namespace crystal::gpu::impl::glan::code_gen {
 
-using std::string, std::format, std::vector, std::variant, std::get;
+using std::string, std::format, std::vector, std::get;
 
 class BLOCK {
  public:
@@ -22,38 +21,31 @@ class BLOCK {
   void PUSH(string&& STR) {
     STACK_.push_back(STR);
   }
+  class STACK {
+   public:
+    STACK(vector<string>& REF) : REF_(REF) {
+    }
+    string POP() {
+      auto TOP = REF_.back();
+      REF_.pop_back();
+      return TOP;
+    }
+    void PUSH(string&& STR) {
+      REF_.push_back(STR);
+    }
+
+   private:
+    vector<string>& REF_;
+  };
   /**
-   * Push a operator for the last element.
+   * Push an operator for the previous elements.
    */
-  void PUSH(string(*OP)(const string&)) {
-    string OPERAND = std::move(STACK_.back());
-    STACK_.pop_back();
-    STACK_.push_back(OP(OPERAND));
-  }
-  /**
-   * Push a operator for the last element.
-   */
-  void PUSH(string(*OP)(const string&, const string&)) {
-    string OPERAND2 = std::move(STACK_.back());
-    STACK_.pop_back();
-    string OPERAND1 = std::move(STACK_.back());
-    STACK_.pop_back();
-    STACK_.push_back(OP(OPERAND1, OPERAND2));
-  }
-  /**
-   * Push a operator for the last element.
-   */
-  void PUSH(string(*OP)(const string&, const string&, const string&)) {
-    string OPERAND3 = std::move(STACK_.back());
-    STACK_.pop_back();
-    string OPERAND2 = std::move(STACK_.back());
-    STACK_.pop_back();
-    string OPERAND1 = std::move(STACK_.back());
-    STACK_.pop_back();
-    STACK_.push_back(OP(OPERAND1, OPERAND2, OPERAND3));
+  template<typename LAMBDA>
+  void PUSH(LAMBDA OP) {
+    OP(STACK(STACK_));
   }
   void PUSH() {
-    PUSH([](const string& PREV) { return PREV + kBEGIN_STR; });
+    PUSH([](auto STACK) { STACK.PUSH(STACK.POP() + kBEGIN_STR); });
     DEPTH_++;
   }
   void POP() {
