@@ -11,6 +11,7 @@
 #include "readonly.h"
 #include "constant.h"
 #include "immediate.h"
+#include "parameter.h"
 
 #include "operator.h"
 

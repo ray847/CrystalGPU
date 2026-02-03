@@ -6,6 +6,7 @@
 #include <expected>
 
 #include "CrystalGPU/impl/glan/code_gen/function.h"
+#include "code_gen/atomic.h"
 #include "code_gen/procedure.h"
 #include "type.h"
 
@@ -69,6 +70,9 @@ class PROCEDURE {
   static const code_gen::FUNCTION* GET_FUNCTION(size_t IDX) {
     if (INSTANCE_) return &INSTANCE_->GET_FUNCTION(IDX);
     return nullptr;
+  }
+  static void ADD_PARAM(code_gen::ATOMIC PARAM) {
+    if (INSTANCE_) INSTANCE_->ADD_PARAM(PARAM);
   }
 
  private:

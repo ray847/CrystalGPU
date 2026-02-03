@@ -20,10 +20,11 @@ class FUNCTION {
     KEY_ = PROCEDURE::BEGIN_FUNCTION<T>();
   }
   template <typename... ARGUMENTS>
-  EXPRESSION<T> operator()(ARGUMENTS... ARGS) const {
+  EXPRESSION<T> operator()(const ARGUMENTS&... ARGS) const {
     assert(sizeof...(ARGUMENTS)
            == PROCEDURE::GET_FUNCTION(KEY_)->SIGNATURE().PARAMS_.size());
-    std::initializer_list<int>{ (EVAL_ARG(ARGS), 0)... };
+    std::initializer_list<int> _{ (EVAL_ARG(ARGS), 0)... };
+    //EVAL_ARGS(ARGS...);
     PROCEDURE::PUSH([&](auto STACK) {
       string ARG_LIST;
       if (PROCEDURE::GET_FUNCTION(KEY_)->SIGNATURE().PARAMS_.size()) {
@@ -46,7 +47,7 @@ class FUNCTION {
   size_t KEY_; // key to the function in the current procedure.
 
   template <ANY_EXPRESSION EXPR>
-  void EVAL_ARG(EXPR E) {
+  void EVAL_ARG(const EXPR& E) const {
     auto _ = static_cast<EXPRESSION<typename EXPR::TYPE>>(E);
   }
 };
