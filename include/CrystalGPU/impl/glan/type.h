@@ -21,6 +21,7 @@
 namespace crystal::gpu::impl::glan {
 
 using std::format, std::array, std::string, std::tuple, std::vector;
+using std::is_same_v, std::decay_t;
 
 /* Type Concept */
 template <typename TYPE>
@@ -31,6 +32,25 @@ concept ANY_TYPE = requires() {
 struct SCALAR {};
 template <typename TYPE>
 concept ANY_SCALAR = ANY_TYPE<TYPE> && std::derived_from<TYPE, SCALAR>;
+
+template <typename TYPE>
+concept ANY_VECTOR = requires {typename TYPE::DTYPE;}
+  && ANY_SCALAR<typename TYPE::DTYPE>
+  && is_same_v<decay_t<decltype(TYPE::N)>, size_t>
+  && TYPE::N >= 2
+  && TYPE::N <= 4
+  && ANY_TYPE<TYPE>;
+
+template <typename TYPE>
+concept ANY_MATRIX = requires {typename TYPE::DTYPE;}
+  && ANY_SCALAR<typename TYPE::DTYPE>
+  && is_same_v<decay_t<decltype(TYPE::N)>, size_t>
+  && TYPE::N >= 2
+  && TYPE::N <= 4
+  && is_same_v<decay_t<decltype(TYPE::M)>, size_t>
+  && TYPE::M >= 2
+  && TYPE::M <= 4
+  && ANY_TYPE<TYPE>;
 
 /* Scalar */
 class INT32 : public SCALAR {
@@ -65,8 +85,11 @@ class VECTOR {
   using CPP_TYPE = array<typename T::CPP_TYPE, n>;
   inline const static code_gen::TYPE CODE_GEN_TYPE{ format(
       "vec{}<{}>", n, T::CODE_GEN_TYPE.KEYWORD()) };
+  /* Vector Specific Attributes */
+  inline static const size_t N = n;
+  using DTYPE = T;
 };
-static_assert(ANY_TYPE<VECTOR<2, INT32>>);
+static_assert(ANY_VECTOR<VECTOR<2, INT32>>);
 
 /* Matrix */
 template <size_t m, size_t n, ANY_SCALAR T>
@@ -75,8 +98,11 @@ class MATRIX {
   using CPP_TYPE = array<array<typename T::CPP_TYPE, n>, m>;
   inline const static code_gen::TYPE CODE_GEN_TYPE{ format(
       "mat{}x{}<{}>", m, n, T::CODE_GEN_TYPE.KEYWORD()) };
+  /* Matrix Specific Attributes */
+  inline static const size_t M = m, N = n;
+  using DTYPE = T;
 };
-static_assert(ANY_TYPE<MATRIX<2, 3, INT32>>);
+static_assert(ANY_MATRIX<MATRIX<2, 3, INT32>>);
 
 /* Tuple */
 template <typename... TYPES>
