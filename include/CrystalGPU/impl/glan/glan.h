@@ -1,20 +1,16 @@
 #ifndef CRYSTALGPU_IMPL_GLAN_GLAN_H_
 #define CRYSTALGPU_IMPL_GLAN_GLAN_H_
 
-#include "type.h"
-
-#include "procedure.h"
 #include "block.h"
-
 #include "expression.h"
-#include "variable.h"
-#include "readonly.h"
-#include "constant.h"
-#include "immediate.h"
-#include "parameter.h"
-
-#include "operator.h"
-
 #include "function.h"
+#include "policy.h"
+#include "procedure.h"
+#include "proxy.h"
+#include "storage.h"
+#include "symbol_table.h"
+#include "symbol.h"
+#include "type.h"
+#include "utility.h"
 
 #endif

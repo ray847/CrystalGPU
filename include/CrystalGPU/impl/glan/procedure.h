@@ -2,81 +2,75 @@
 #define CRYSTALGPU_IMPL_GLAN_PROCEDURE_H_
 
 #include <string>
-#include <memory>
-#include <expected>
+#include <string_view>
+#include <vector>
+#include <format>
 
-#include "CrystalGPU/impl/glan/code_gen/function.h"
-#include "code_gen/atomic.h"
-#include "code_gen/procedure.h"
+#include "function.h"
+#include "symbol_table.h"
 #include "type.h"
 
 namespace crystal::gpu::impl::glan {
 
-using std::string, std::unique_ptr, std::expected;
+using std::vector, std::string, std::string_view, std::format;
 
-struct BLOCK_BEGIN_RETURN;
-
-/**
- * A GPU procedure (corresponds to a GPU pipeline).
- *
- * This class is a wrapper around the class `code_gen::PROCEDURE`, implementing
- * a thread local singleton pattern (thread local for the CPU).
- * This class exposes the following interfaces for the other classes in this
- * hierarchy: `Push()` (overloaded), `Pop()`.
- * This class is furthur specialized to create the compute procedure class and
- * the render procedure class.
- */
-class PROCEDURE {
+class Proc {
  public:
-  template <typename T>
-  requires std::is_same_v<T, BLOCK_BEGIN_RETURN>
-  PROCEDURE(T) {
-    /* Check if there is another instance in place. */
-    if (INSTANCE_) return;
-    INSTANCE_ = std::make_unique<code_gen::PROCEDURE>();
+  inline void Push(const string& S) {
+    curr_fn_->Def().Push(S);
   }
-  ~PROCEDURE() {
-    INSTANCE_ = nullptr;
+  inline void Push(string&& S) {
+    curr_fn_->Def().Push(S);
   }
-  expected<string, string> TO_CODE() const {
-    if (INSTANCE_) return INSTANCE_->operator string();
-    return std::unexpected("Procedure not initialized.");
+  inline void Push(string_view S) {
+    curr_fn_->Def().Push(S);
   }
-
-  static void PUSH(const string& STR) {
-    if (INSTANCE_) INSTANCE_->PUSH(STR);
+  template <typename lambda>
+  inline void Push(lambda op) {
+    curr_fn_->Def().Push(op);
   }
-  static void PUSH(string&& STR) {
-    if (INSTANCE_) INSTANCE_->PUSH(STR);
+  inline void Push() {
+    curr_fn_->Def().Push();
   }
-  template <typename LAMBDA>
-  static void PUSH(LAMBDA OP) {
-    if (INSTANCE_) INSTANCE_->PUSH(OP);
+  inline void Pop() {
+    if (curr_fn_->Def().Depth() == 0) curr_fn_ = &main_; //  go back to main
+    else curr_fn_->Def().POP();
   }
-  static void PUSH() {
-    if (INSTANCE_) INSTANCE_->PUSH();
+  inline void PushDef(const Symbol& symbol) {
+    Push(format("{} {}: {}",
+                symbol.behavior.def_keyword,
+                symbol.name,
+                symbol.type.wgsl_keyword));
   }
-  static void POP() {
-    if (INSTANCE_) INSTANCE_->POP();
+  /**
+   * Begin a function definition in the procedure.
+   *
+   * To end a function definition and return to the definition for main, call
+   * `Pop()` with no arguments at the end.
+   */
+  inline void BeginFn(Type T) {
+    fns_.emplace_back(T);
   }
-  static void DEFINE_TUPLE(size_t TAG) {
-    if (INSTANCE_) INSTANCE_->DEFINE_TUPLE(TAG);
+  inline auto& SymbolTable() {
+    return symbol_table_;
   }
-  template <ANY_TYPE T>
-  static size_t BEGIN_FUNCTION() {
-    if (INSTANCE_) return INSTANCE_->BEGIN_FUNCTION(T::CODE_GEN_TYPE);
-    return 0;
-  }
-  static const code_gen::FUNCTION* GET_FUNCTION(size_t IDX) {
-    if (INSTANCE_) return &INSTANCE_->GET_FUNCTION(IDX);
-    return nullptr;
-  }
-  static void ADD_PARAM(code_gen::ATOMIC PARAM) {
-    if (INSTANCE_) INSTANCE_->ADD_PARAM(PARAM);
+  operator string() const {
+    string code;
+    code += main_;
+    for (auto& fn : fns_) code += fn;
+    return code;
   }
 
  private:
-  inline thread_local static unique_ptr<code_gen::PROCEDURE> INSTANCE_{};
+  class SymbolTable symbol_table_;
+  /* Main Function. */
+  class Fn main_ {
+    VOID{}, "MAIN"
+  };
+  /* Custom Functions */
+  vector<class Fn> fns_;
+  /* Pointer to the current function. */
+  Fn* curr_fn_ = &main_;
 };
 
 } // namespace crystal::gpu::impl::glan

@@ -1,34 +1,32 @@
 #ifndef CRYSTALGPU_IMPL_GLAN_EXPRESSION_H_
 #define CRYSTALGPU_IMPL_GLAN_EXPRESSION_H_
 
-#include <concepts>
-
-#include "semantic/expression.h"
 #include "type.h"
 
 namespace crystal::gpu::impl::glan {
 
-template <ANY_TYPE T>
-class EXPRESSION;
-
 template <typename T>
-concept ANY_EXPRESSION =
-    semantic::ANY_EXPRESSION<T>
-    && std::convertible_to<T, EXPRESSION<typename T::TYPE>>;
+concept AnyExpr = requires {
+  typename T::Type;
+} && AnyType<typename T::TYPE>;
 
-/* Scalar Expression */
-template <ANY_TYPE T>
-class EXPRESSION {
- public:
-  using TYPE = T;
-  bool CONSTANT_ = false;
-  EXPRESSION(bool CONSTANT = false) : CONSTANT_(CONSTANT) {}
-  /* Bool operators for const checking. */
-  EXPRESSION operator&&(const EXPRESSION& OTHER) const {
-    return CONSTANT_ && OTHER.CONSTANT_ ? EXPRESSION(true) : EXPRESSION(false);
+template <AnyType Type>
+struct Expr {
+  bool comp_time_const = false;
+  Expr(bool comp_time_const) : comp_time_const(comp_time_const) {
   }
+  Expr(const Expr& other) = default;
+  Expr(Expr&& other) = delete;
+  Expr& operator=(const Expr& rhs) = default;
+  Expr& operator=(Expr&& rhs) = delete;
+
 };
-static_assert(ANY_EXPRESSION<EXPRESSION<INT32>>);
+
+/* Logical operator for const arithmetic. */
+template <AnyType Type>
+Expr<Type> operator&&(const Expr<Type>& L, const Expr<Type>& R) {
+  return {L.comp_time_const && R.comp_time_const};
+}
 
 } // namespace crystal::gpu::impl::glan
 

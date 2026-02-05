@@ -4,150 +4,89 @@
 #include <CrystalBase/concepts.h>
 
 #include <array>
-#include <concepts>
 #include <cstdint>
 #include <format>
-#include <initializer_list>
-#include <stdfloat>
 #include <string>
+#include <string_view>
 #include <type_traits>
-#include <tuple>
-#include <vector>
-
-#include "code_gen/type.h"
-#include "code_gen/tuple.h"
-#include "semantic/type.h"
 
 namespace crystal::gpu::impl::glan {
 
-using std::format, std::array, std::string, std::tuple, std::vector;
-using std::is_same_v, std::decay_t;
+using std::is_same_v, std::decay_t, std::is_scalar_v, std::string,
+    std::string_view, std::array, std::format;
 
-/* Type Concept */
-template <typename TYPE>
-concept ANY_TYPE = requires() {
-  { TYPE::CODE_GEN_TYPE } -> std::same_as<const code_gen::TYPE&>;
-} && semantic::ANY_TYPE<TYPE>;
+/* Concepts */
+template <typename T>
+concept AnyType = requires {
+  typename T::cpp_type;
+  { T::wgsl_keyword };
+} && is_same_v<decay_t<decltype(T::wgsl_keyword)>, string_view>;
 
-struct SCALAR {};
-template <typename TYPE>
-concept ANY_SCALAR = ANY_TYPE<TYPE> && std::derived_from<TYPE, SCALAR>;
+template <typename T>
+concept AnyScalar = AnyType<T> && is_scalar_v<typename T::cpp_type>;
 
-template <typename TYPE>
-concept ANY_VECTOR = requires {typename TYPE::DTYPE;}
-  && ANY_SCALAR<typename TYPE::DTYPE>
-  && is_same_v<decay_t<decltype(TYPE::N)>, size_t>
-  && TYPE::N >= 2
-  && TYPE::N <= 4
-  && ANY_TYPE<TYPE>;
+template <typename T>
+concept AnyVector =
+    requires { typename T::DType; } && AnyScalar<typename T::DType>
+    && is_same_v<decay_t<decltype(T::N)>, size_t> && T::N >= 2 && T::N <= 4
+    && is_std_array_v<typename T::cpp_type>
+    && is_scalar_v<typename T::cpp_type::value_type> && AnyType<T>;
 
-template <typename TYPE>
-concept ANY_MATRIX = requires {typename TYPE::DTYPE;}
-  && ANY_SCALAR<typename TYPE::DTYPE>
-  && is_same_v<decay_t<decltype(TYPE::N)>, size_t>
-  && TYPE::N >= 2
-  && TYPE::N <= 4
-  && is_same_v<decay_t<decltype(TYPE::M)>, size_t>
-  && TYPE::M >= 2
-  && TYPE::M <= 4
-  && ANY_TYPE<TYPE>;
+template <typename T>
+concept AnyMatrix =
+    requires { typename T::DType; } && AnyScalar<typename T::DType>
+    && is_same_v<decay_t<decltype(T::M)>, size_t> && T::M >= 2 && T::M <= 4
+    && is_same_v<decay_t<decltype(T::N)>, size_t> && T::N >= 2 && T::N <= 4
+    && is_std_array_v<typename T::cpp_type>
+    && is_std_array_v<typename T::cpp_type::value_type>
+    && is_scalar_v<typename T::cpp_type::value_type::value_type> && AnyType<T>;
 
-/* Scalar */
-class INT32 : public SCALAR {
- public:
-  using CPP_TYPE = int32_t;
-  inline const static code_gen::TYPE CODE_GEN_TYPE{ "i32" };
+template <typename T>
+concept ANY_STRUCT = AnyType<T>;
+
+/* Scalar Type */
+struct I32 {
+  using cpp_type = int32_t;
+  inline static constexpr string_view wgsl_keyword{ "i32" };
 };
-static_assert(ANY_TYPE<INT32>);
-class UINT32 : public SCALAR {
- public:
-  using CPP_TYPE = uint32_t;
-  inline const static code_gen::TYPE CODE_GEN_TYPE{ "u32" };
-};
-static_assert(ANY_TYPE<UINT32>);
-class BOOL : public SCALAR {
- public:
-  using CPP_TYPE = bool;
-  inline const static code_gen::TYPE CODE_GEN_TYPE{ "bool" };
-};
-static_assert(ANY_TYPE<BOOL>);
-class FLOAT32 : public SCALAR {
- public:
-  using CPP_TYPE = float;
-  inline const static code_gen::TYPE CODE_GEN_TYPE{ "f32" };
-};
-static_assert(ANY_TYPE<FLOAT32>);
+static_assert(AnyScalar<I32>);
 
-/* Vector */
-template <size_t n, ANY_SCALAR T>
-class VECTOR {
- public:
-  using CPP_TYPE = array<typename T::CPP_TYPE, n>;
-  inline const static code_gen::TYPE CODE_GEN_TYPE{ format(
-      "vec{}<{}>", n, T::CODE_GEN_TYPE.KEYWORD()) };
-  /* Vector Specific Attributes */
-  inline static const size_t N = n;
-  using DTYPE = T;
+/* Vector Type */
+template <size_t dim_n, AnyScalar Scalar>
+struct Vec {
+  using cpp_type = array<typename Scalar::cpp_type, dim_n>;
+  inline static constexpr string_view wgsl_keyword =
+      format("vec{}<{}>", dim_n, Scalar::wgsl_keyword);
+  using DType = Scalar;
+  inline static constexpr size_t N = dim_n;
 };
-static_assert(ANY_VECTOR<VECTOR<2, INT32>>);
+static_assert(AnyVector<Vec<2, I32>>);
 
-/* Matrix */
-template <size_t m, size_t n, ANY_SCALAR T>
-class MATRIX {
- public:
-  using CPP_TYPE = array<array<typename T::CPP_TYPE, n>, m>;
-  inline const static code_gen::TYPE CODE_GEN_TYPE{ format(
-      "mat{}x{}<{}>", m, n, T::CODE_GEN_TYPE.KEYWORD()) };
-  /* Matrix Specific Attributes */
-  inline static const size_t M = m, N = n;
-  using DTYPE = T;
+/* Matrix Type */
+template <size_t dim_m, size_t dim_n, AnyScalar Scalar>
+struct Mat {
+  using cpp_type = array<array<typename Scalar::cpp_type, dim_n>, dim_m>;
+  inline static constexpr string_view wgsl_keyword =
+      format("mat{}x{}<{}>", dim_m, dim_n, Scalar::wgsl_keyword);
+  using DType = Scalar;
+  inline static constexpr size_t M = dim_m, N = dim_n;
 };
-static_assert(ANY_MATRIX<MATRIX<2, 3, INT32>>);
+static_assert(AnyMatrix<Mat<2, 3, I32>>);
 
-/* Tuple */
-template <typename... TYPES>
-class TUPLE : public code_gen::TUPLE {
- public:
-  using CPP_TYPE = tuple<TYPES...>;
-  inline const static code_gen::TYPE CODE_GEN_TYPE = code_gen::TUPLE{
-    std::initializer_list<code_gen::TYPE>{ (TYPES::CODE_GEN_TYPE)... }
-  };
+/* Other Types */
+struct VOID {
+  using cpp_type = void;
+  inline static constexpr string_view wgsl_keyword{ "void" };
 };
-static_assert(ANY_TYPE<TUPLE<INT32>>);
-template <typename TYPE>
-struct ANY_TUPLE : public std::false_type {};
-template <typename... TYPES>
-struct ANY_TUPLE<TUPLE<TYPES...>> : public std::true_type {};
+static_assert(AnyType<VOID>);
 
-template <typename CPP_TYPE>
-string TO_STRING(CPP_TYPE VAL) {
-  if constexpr (std::is_integral_v<CPP_TYPE>
-                || std::is_floating_point_v<CPP_TYPE>) {
-    return std::to_string(VAL);
-  } else if constexpr (is_std_array<CPP_TYPE>::value
-                       && (std::is_integral_v<typename CPP_TYPE::value_type>
-                           || std::is_floating_point_v<
-                               typename CPP_TYPE::value_type
-                           >)) {
-    string STR = "{";
-    for (auto V : VAL) STR += format("{}, ", V);
-    STR += "}";
-    return STR;
-  } else if constexpr (is_std_array<CPP_TYPE>::value
-                       && is_std_array<typename CPP_TYPE::value_type>::value
-                       && (std::is_integral_v<
-                               typename CPP_TYPE::value_type::value_type
-                           >
-                           || std::is_floating_point_v<
-                               typename CPP_TYPE::value_type::value_type
-                           >)) {
-    string STR = "{";
-    for (auto& VA : VAL)
-      for (auto V : VA) STR += format("{}, ", V);
-    STR += "}";
-    return STR;
+/* Type Metadata */
+struct Type {
+  string wgsl_keyword;
+  template <AnyType T>
+  Type(T) : wgsl_keyword(T::wgsl_keyword) {
   }
-}
+};
 
 } // namespace crystal::gpu::impl::glan
 

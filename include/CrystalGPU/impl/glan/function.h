@@ -1,56 +1,76 @@
 #ifndef CRYSTALGPU_IMPL_GLAN_FUNCTION_H_
 #define CRYSTALGPU_IMPL_GLAN_FUNCTION_H_
 
-#include <initializer_list>
+#include <string>
+#include <vector>
+#include <format>
 
-#include "expression.h"
-#include "procedure.h"
+#include "block.h"
 #include "type.h"
+#include "utility.h"
+#include "symbol.h"
 
 namespace crystal::gpu::impl::glan {
 
-struct BLOCK_BEGIN_RETURN;
+using std::string, std::vector, std::format;
 
-template <ANY_TYPE T>
-class FUNCTION {
+/**
+ * A signature for a `glan` function.
+ *
+ * A signature contains:
+ *  1. name
+ *  2. return type
+ *  3. params
+ */
+class Signature {
  public:
-  template <typename U>
-  requires std::is_same_v<U, BLOCK_BEGIN_RETURN>
-  FUNCTION(U) {
-    KEY_ = PROCEDURE::BEGIN_FUNCTION<T>();
+  /* Variables */
+  Signature(Type RET_TYPE) : name_(GenName("sig")), ret_type_(RET_TYPE) {
   }
-  template <typename... ARGUMENTS>
-  EXPRESSION<T> operator()(const ARGUMENTS&... ARGS) const {
-    assert(sizeof...(ARGUMENTS)
-           == PROCEDURE::GET_FUNCTION(KEY_)->SIGNATURE().PARAMS_.size());
-    std::initializer_list<int> _{ (EVAL_ARG(ARGS), 0)... };
-    //EVAL_ARGS(ARGS...);
-    PROCEDURE::PUSH([&](auto STACK) {
-      string ARG_LIST;
-      if (PROCEDURE::GET_FUNCTION(KEY_)->SIGNATURE().PARAMS_.size()) {
-        ARG_LIST = STACK.POP();
-        for (int I = 1;
-             I < PROCEDURE::GET_FUNCTION(KEY_)->SIGNATURE().PARAMS_.size();
-             ++I) {
-          ARG_LIST += ", " + STACK.POP();
-        }
+  Signature(Type RET_TYPE, string NAME) : name_(NAME), ret_type_(RET_TYPE) {
+  }
+  string name_;
+  Type ret_type_;
+  vector<Symbol> params_;
+};
+
+class Fn {
+ public:
+  Fn(Type RET_TYPE) : sig_(RET_TYPE) {
+  }
+  Fn(Type RET_TYPE, string NAME) : sig_(RET_TYPE, NAME) {
+  }
+  auto& Def() {
+    return def_;
+  }
+  operator string() const {
+    string code;
+    {
+      string param_str;
+      if (sig_.params_.size() > 0) {
+        param_str += format(
+            "{}: {}", sig_.params_[0].name, sig_.params_[0].type.wgsl_keyword);
+        for (int i = 1; i < sig_.params_.size(); ++i)
+          param_str += format(", {}: {}",
+                              sig_.params_[0].name,
+                              sig_.params_[0].type.wgsl_keyword);
       }
-      /* Push a function call atomic. */
-      STACK.PUSH(format("{}({})",
-                        PROCEDURE::GET_FUNCTION(KEY_)->SIGNATURE().NAME_,
-                        ARG_LIST));
-    });
-    return {};
+      code += format("fn {}({}) ", sig_.name_, param_str);
+    }
+    if (sig_.ret_type_.wgsl_keyword != "void")
+      code += format("-> {} ", sig_.ret_type_.wgsl_keyword);
+    code += def_;
+    code += '\n';
+    return code;
   }
 
  private:
-  size_t KEY_; // key to the function in the current procedure.
-
-  template <ANY_EXPRESSION EXPR>
-  void EVAL_ARG(const EXPR& E) const {
-    auto _ = static_cast<EXPRESSION<typename EXPR::TYPE>>(E);
-  }
+  /* Function Signature */
+  Signature sig_;
+  /* Function Definition */
+  BLK def_;
 };
+
 } // namespace crystal::gpu::impl::glan
 
 #endif
