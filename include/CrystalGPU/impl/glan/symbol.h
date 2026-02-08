@@ -3,9 +3,9 @@
 
 #include <string>
 
-#include "type.h"
+#include "dtype.h"
 #include "storage.h"
-#include "policy.h"
+#include "type.h"
 
 namespace crystal::gpu::impl::glan {
 
@@ -13,9 +13,9 @@ using std::string;
 
 struct Symbol {
   string name;
-  Type type;
-  Storage storage;
-  Behavior behavior;
+  TypeMetaData type_metadata;
+  DTypeMetaData dtype_metadata;
+  StorageMetaData storage_metadata;
 };
 
 } // namespace crystal::gpu::impl::glan

@@ -1,31 +1,24 @@
 #include <iostream>
+#include <string>
 
-#include <CrystalGPU/impl/glan/glan.h>
+#include <CrystalGPU/glan/glan.h>
 
 int main() {
+
+  using std::string;
+  using namespace crystal::gpu::glan;
+
   /* Create procedure. */
-  using namespace crystal::gpu::impl::glan;
-
   Proc proc;
-  ProxyBind(proc);
+  BindProc(proc);
 
-  Proxy<I32,
-        Storage::LOCAL,
-        Policy<DefLoc::Local, "var", true, false, false, false>>
-      ivar;
-  /* Same type. */
-  Proxy<I32,
-        Storage::LOCAL,
-        Policy<DefLoc::Local, "var", true, false, false, false>>
-      ivar1 = ivar;
-  ivar1 = ivar;
-  /* Different type. */
-  Proxy<I32,
-        Storage::LOCAL,
-        Policy<DefLoc::Local, "var", false, false, false, false>>
-      ivar2 = ivar;
+  Var<I32> ivar;
+  RO<I32> iro = ivar;
+  Const<I32> iconst;
+  Const<I32> iconst1 = iconst;
+  ivar = iro;
 
-  ProxyUnbind();
+  UnbindProc();
   
   std::cout << static_cast<string>(proc) << std::endl;
 

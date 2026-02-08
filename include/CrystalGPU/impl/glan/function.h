@@ -1,14 +1,14 @@
 #ifndef CRYSTALGPU_IMPL_GLAN_FUNCTION_H_
 #define CRYSTALGPU_IMPL_GLAN_FUNCTION_H_
 
+#include <format>
 #include <string>
 #include <vector>
-#include <format>
 
 #include "block.h"
-#include "type.h"
-#include "utility.h"
+#include "dtype.h"
 #include "symbol.h"
+#include "utility.h"
 
 namespace crystal::gpu::impl::glan {
 
@@ -25,20 +25,25 @@ using std::string, std::vector, std::format;
 class Signature {
  public:
   /* Variables */
-  Signature(Type RET_TYPE) : name_(GenName("sig")), ret_type_(RET_TYPE) {
+  Signature(DTypeMetaData RET_TYPE) :
+      name_(GenName("sig")), ret_type_(RET_TYPE) {
   }
-  Signature(Type RET_TYPE, string NAME) : name_(NAME), ret_type_(RET_TYPE) {
+  Signature(DTypeMetaData RET_TYPE, string NAME) :
+      name_(NAME), ret_type_(RET_TYPE) {
   }
   string name_;
-  Type ret_type_;
+  DTypeMetaData ret_type_;
   vector<Symbol> params_;
 };
 
 class Fn {
  public:
-  Fn(Type RET_TYPE) : sig_(RET_TYPE) {
+  Fn(DTypeMetaData RET_TYPE) : sig_(RET_TYPE) {
   }
-  Fn(Type RET_TYPE, string NAME) : sig_(RET_TYPE, NAME) {
+  Fn(DTypeMetaData RET_TYPE, string NAME) : sig_(RET_TYPE, NAME) {
+  }
+  auto& Sig() {
+    return sig_;
   }
   auto& Def() {
     return def_;
@@ -48,17 +53,18 @@ class Fn {
     {
       string param_str;
       if (sig_.params_.size() > 0) {
-        param_str += format(
-            "{}: {}", sig_.params_[0].name, sig_.params_[0].type.wgsl_keyword);
+        param_str += format("{}: {}",
+                            sig_.params_[0].name,
+                            sig_.params_[0].dtype_metadata.keyword);
         for (int i = 1; i < sig_.params_.size(); ++i)
           param_str += format(", {}: {}",
                               sig_.params_[0].name,
-                              sig_.params_[0].type.wgsl_keyword);
+                              sig_.params_[0].dtype_metadata.keyword);
       }
       code += format("fn {}({}) ", sig_.name_, param_str);
     }
-    if (sig_.ret_type_.wgsl_keyword != "void")
-      code += format("-> {} ", sig_.ret_type_.wgsl_keyword);
+    if (sig_.ret_type_.keyword != "void")
+      code += format("-> {} ", sig_.ret_type_.keyword);
     code += def_;
     code += '\n';
     return code;

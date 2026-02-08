@@ -6,6 +6,7 @@
 #include <vector>
 #include <format>
 
+#include "dtype.h"
 #include "function.h"
 #include "symbol_table.h"
 #include "type.h"
@@ -38,9 +39,9 @@ class Proc {
   }
   inline void PushDef(const Symbol& symbol) {
     Push(format("{} {}: {}",
-                symbol.behavior.def_keyword,
+                symbol.type_metadata.keyword,
                 symbol.name,
-                symbol.type.wgsl_keyword));
+                symbol.dtype_metadata.keyword));
   }
   /**
    * Begin a function definition in the procedure.
@@ -48,8 +49,12 @@ class Proc {
    * To end a function definition and return to the definition for main, call
    * `Pop()` with no arguments at the end.
    */
-  inline void BeginFn(Type T) {
+  inline void BeginFn(DTypeMetaData T) {
     fns_.emplace_back(T);
+    curr_fn_ = &fns_.back();
+  }
+  inline auto& CurrFn() {
+    return *curr_fn_;
   }
   inline auto& SymbolTable() {
     return symbol_table_;
@@ -65,13 +70,27 @@ class Proc {
   class SymbolTable symbol_table_;
   /* Main Function. */
   class Fn main_ {
-    VOID{}, "MAIN"
+    DTypeMetaData{"void"}, "MAIN"
   };
   /* Custom Functions */
   vector<class Fn> fns_;
   /* Pointer to the current function. */
   Fn* curr_fn_ = &main_;
 };
+
+/* Global State Object */
+inline static Proc* global_proc = nullptr;
+/* Accessor */
+inline Proc& GlobalProc() {
+  return *global_proc;
+}
+/* Modifiers */
+inline void BindProc(Proc& proc) {
+  global_proc = &proc;
+}
+inline void UnbindProc() {
+  global_proc = nullptr;
+}
 
 } // namespace crystal::gpu::impl::glan
 
