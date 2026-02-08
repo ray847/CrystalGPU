@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include "CrystalGPU/impl/glan/expression.h"
 
 #include <CrystalGPU/glan/glan.h>
 
@@ -12,11 +13,9 @@ int main() {
   Proc proc;
   BindProc(proc);
 
-  Var<I32> ivar;
-  RO<I32> iro = ivar;
-  Const<I32> iconst;
-  Const<I32> iconst1 = iconst;
-  ivar = iro;
+  Var<Vec<2, I32>> vec;
+  Var<Vec<2, I32>> vec1 = vec + vec;
+  vec1[0, 1] = vec[0, 1];
 
   UnbindProc();
   

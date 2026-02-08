@@ -41,6 +41,14 @@ struct TypeMetaData {
   }
 };
 
+/* Type Conversion */
+/* Logical Operation */
+template <AnyType Type1, AnyType Type2>
+using Intercect = Type<"", // the keyword should not be used
+                       Type1::kLVal && Type2::kLVal,
+                       Type1::kRVal && Type2::kRVal,
+                       Type1::kCompTimeConst && Type2::kCompTimeConst>;
+
 }  // namespace crystal::gpu::impl::glan
 
 #endif

@@ -23,8 +23,8 @@ enum class Subscript {
 /* Container */
 template <bool is_container = false, size_t n = 0, typename Inner = void>
 struct Container {
-  static constexpr bool kIsContainer = false;
-  static constexpr size_t kN = 0;
+  static constexpr bool kIsContainer = is_container;
+  static constexpr size_t kN = n;
   using kInner = Inner;
   operator bool() const {
     return is_container;
